@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>latentblue - Agentic Augmentation through Reinforcement</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --blue-deep: #0c1220;
+            --blue-mid: #162040;
+            --blue-accent: #7db4e0;
+            --blue-light: #a8d0f0;
+            --blue-glow: #c4e0f8;
+            --white: #f0f4f8;
+            --grey: #a0aec0;
+            --grey-light: #cbd5e1;
+            --grid-line: rgba(125, 180, 224, 0.04);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--blue-deep);
+            color: var(--white);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        /* Blueprint grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* Major grid lines every 200px */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(125, 180, 224, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(125, 180, 224, 0.06) 1px, transparent 1px);
+            background-size: 200px 200px;
+        }
+
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse at 15% 50%, rgba(125, 180, 224, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 30%, rgba(168, 208, 240, 0.06) 0%, transparent 40%),
+                radial-gradient(ellipse at 50% 100%, rgba(100, 140, 200, 0.06) 0%, transparent 50%),
+                linear-gradient(160deg, #0c1220 0%, #111d35 40%, #0e1828 100%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            padding: 3rem 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--white);
+        }
+
+        .logo span {
+            color: var(--blue-accent);
+        }
+
+        .tagline {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 300;
+            color: var(--grey);
+            letter-spacing: 0.08em;
+            margin-top: 0.35rem;
+        }
+
+        .nav-contact {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--blue-accent);
+            text-decoration: none;
+            background: rgba(8, 12, 24, 0.6);
+            border: 1px solid rgba(125, 180, 224, 0.15);
+            border-radius: 6px;
+            padding: 0.4rem 0.85rem;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .nav-contact::before {
+            content: '>';
+            opacity: 0.4;
+        }
+
+        .nav-contact:hover {
+            background: rgba(125, 180, 224, 0.08);
+            border-color: rgba(125, 180, 224, 0.25);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 6rem 0 4rem;
+        }
+
+        .hero h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: clamp(2.2rem, 5vw, 3.2rem);
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 em {
+            font-style: normal;
+            color: var(--blue-accent);
+        }
+
+        .hero .subtitle {
+            font-size: 1.1rem;
+            font-weight: 300;
+            color: var(--grey);
+            max-width: 580px;
+            line-height: 1.7;
+        }
+
+        /* Sections */
+        .section {
+            padding: 4rem 0;
+        }
+
+        .section h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            color: var(--blue-accent);
+            margin-bottom: 2.5rem;
+        }
+
+        .section h2::before {
+            content: '>  ';
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--blue-accent);
+            opacity: 0.7;
+        }
+
+        /* Divider */
+        .divider {
+            width: 60px;
+            height: 1px;
+            background: var(--blue-accent);
+            margin: 2rem 0;
+            opacity: 0.4;
+        }
+
+        /* Offerings */
+        .offerings {
+            display: grid;
+            gap: 2.5rem;
+        }
+
+        .offering h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .offering p {
+            color: var(--grey);
+            font-weight: 300;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .offering .tag {
+            display: inline-block;
+            margin-top: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--blue-accent);
+            background: rgba(125, 180, 224, 0.06);
+            padding: 0.3rem 0.75rem;
+            border-radius: 4px;
+            border: 1px solid rgba(125, 180, 224, 0.15);
+        }
+
+        /* Stats */
+        .stats {
+            padding: 6rem 0 4rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .stat {
+            opacity: 0;
+            transform: translateY(16px);
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .stat:nth-child(1) { animation-delay: 0.1s; }
+        .stat:nth-child(2) { animation-delay: 0.2s; }
+        .stat:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat .number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--blue-accent);
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.03em;
+        }
+
+        .stat:first-child .number {
+            font-size: 3rem;
+        }
+
+        .stat .label {
+            font-size: 0.9rem;
+            color: var(--grey);
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        /* CTA */
+        .cta {
+            padding: 4rem 0;
+        }
+
+        .terminal {
+            background: rgba(8, 12, 24, 0.6);
+            border: 1px solid rgba(125, 180, 224, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .terminal-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.75rem 1rem;
+            background: rgba(125, 180, 224, 0.06);
+            border-bottom: 1px solid rgba(125, 180, 224, 0.1);
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(125, 180, 224, 0.2);
+        }
+
+        .terminal-dot:first-child { background: rgba(255, 95, 86, 0.5); }
+        .terminal-dot:nth-child(2) { background: rgba(255, 189, 46, 0.5); }
+        .terminal-dot:nth-child(3) { background: rgba(39, 201, 63, 0.5); }
+
+        .terminal-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--grey);
+            margin-left: 0.5rem;
+            font-weight: 400;
+        }
+
+        .terminal-body {
+            padding: 2rem;
+        }
+
+        .terminal-line {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--grey-light);
+            margin-bottom: 0.5rem;
+            line-height: 1.8;
+        }
+
+        .terminal-line .prompt {
+            color: var(--blue-accent);
+            font-weight: 600;
+        }
+
+        .terminal-line .comment {
+            color: var(--grey);
+        }
+
+        .terminal-link {
+            display: inline-block;
+            margin-top: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--blue-accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .terminal-link:hover {
+            color: var(--blue-light);
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--blue-accent);
+            margin-left: 4px;
+            vertical-align: text-bottom;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 0 6rem;
+        }
+
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-top p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: rgba(160, 174, 192, 0.5);
+            font-weight: 500;
+        }
+
+        .founder-bio {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: rgba(160, 174, 192, 0.5);
+            font-weight: 400;
+            line-height: 1.8;
+            max-width: 580px;
+        }
+
+        .footer-copyright {
+            margin-top: 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: rgba(160, 174, 192, 0.4);
+            font-weight: 400;
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            .container {
+                padding: 0 1.25rem;
+            }
+
+            .hero {
+                padding: 4rem 0 3rem;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .stat:first-child .number {
+                font-size: 2.5rem;
+            }
+
+            .terminal-body {
+                padding: 1.5rem;
+            }
+
+            .terminal-line {
+                font-size: 0.85rem;
+            }
+
+            .divider {
+                margin: 1.5rem 0;
+            }
+
+            .section {
+                padding: 3rem 0;
+            }
+
+            .stats {
+                padding: 3rem 0;
+            }
+
+            footer {
+                padding: 3rem 0 4rem;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .hero h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <div class="container">
+        <header>
+            <div>
+                <div class="logo">latent<span>blue</span></div>
+                <div class="tagline">Unlocking latent potential through design</div>
+            </div>
+            <a href="#contact" class="nav-contact">contact</a>
+        </header>
+
+        <section class="hero">
+            <h1>Augmentation through <em>reinforcement</em></h1>
+            <p class="subtitle">Bespoke agentic workflow systems, built in days, that learn from how your team actually works.</p>
+        </section>
+
+        <div class="divider"></div>
+
+        <section class="section">
+            <h2>What we do</h2>
+            <div class="offerings">
+                <div class="offering">
+                    <h3>Personal harness</h3>
+                    <p>A bespoke agentic workflow system built around how you actually work. Delivered in days, not months. You keep working; we build around you.</p>
+                    <span class="tag">2-3 days</span>
+                </div>
+                <div class="offering">
+                    <h3>Team augmentation</h3>
+                    <p>We audit your team's workflows, identify the highest-impact automation points, build the systems, and train your people to use them.</p>
+                    <span class="tag">2-3 weeks</span>
+                </div>
+                <div class="offering">
+                    <h3>Ongoing support</h3>
+                    <p>Models and tools evolve fast. We stay on top of it so your team doesn't have to. Your systems evolve as the technology does.</p>
+                    <span class="tag">Monthly retainer</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats">
+            <div class="stats-grid">
+                <div class="stat">
+                    <div class="number">80%</div>
+                    <div class="label">Effectiveness uplift from a single deployment</div>
+                </div>
+                <div class="stat">
+                    <div class="number">52</div>
+                    <div class="label">Days of additional capacity unlocked in 3 months</div>
+                </div>
+                <div class="stat">
+                    <div class="number">8</div>
+                    <div class="label">Team augmentation now live at a top 5 global agency</div>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section class="section values">
+            <h2>How we think</h2>
+            <div class="offerings">
+                <div class="offering">
+                    <h3>Reinforcement over instruction</h3>
+                    <p>Your corrections, preferences, and shortcuts become permanent knowledge. The system is yours; it goes where you go.</p>
+                </div>
+                <div class="offering">
+                    <h3>Latent potential, unlocked by design</h3>
+                    <p>The capacity is already in your team. It's buried under manual processes and tools that weren't built for how they work. We architect the system that brings it out.</p>
+                </div>
+                <div class="offering">
+                    <h3>Live from day one</h3>
+                    <p>Everything we deliver is live infrastructure your team works with from day one. If it doesn't get used, we haven't done our job.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section class="cta" id="contact">
+            <div class="terminal">
+                <div class="terminal-bar">
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <span class="terminal-title">latentblue</span>
+                </div>
+                <div class="terminal-body">
+                    <div class="terminal-line"><span class="comment"># A conversation about what your team could be.</span></div>
+                    <div class="terminal-line"><span class="prompt">&gt;</span> latentblue --contact</div>
+                    <a href="mailto:nick@latentblue.ai" class="terminal-link">nick@latentblue.ai<span class="terminal-cursor"></span></a>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <div class="footer-top">
+                <p>latentblue</p>
+                <p>2026</p>
+            </div>
+            <p class="founder-bio">Founded by Nick Robinson, ACA. Background in audit and commercial operations at PwC and a top 5 global media agency. Now deploying agentic workflow systems for teams that should be moving faster.</p>
+        </footer>
+    </div>
+</body>
+</html>
